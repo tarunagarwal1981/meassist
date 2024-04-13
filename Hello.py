@@ -16,9 +16,6 @@ import openpyxl
 from sentence_transformers import SentenceTransformer
 import faiss
 
-# Additional utility libraries
-import os
-from google.colab import drive
 
 # LangChain or other specific libraries can be imported based on your usage
 # import langchain  # Uncomment or modify based on your project's requirements
