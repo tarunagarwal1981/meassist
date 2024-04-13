@@ -16,6 +16,10 @@ import openpyxl
 from sentence_transformers import SentenceTransformer
 import faiss
 
+<<<<<<< HEAD
+
+=======
+>>>>>>> 5725a20cbc1cd63cecf0872ae39cab92a34e7412
 
 # LangChain or other specific libraries can be imported based on your usage
 # import langchain  # Uncomment or modify based on your project's requirements
@@ -24,6 +28,7 @@ import faiss
 # folder_path = '/content/drive/My Drive/LLM'
 
 # With this line
+import os
 folder_path = os.path.join(os.getcwd(), 'docs')
 
 import os
@@ -125,7 +130,7 @@ def search_documents(query, index, text_list, top_k=5):
 import os
 import openai
 
-openai.api_key = os.environ["OPENAI_API_KEY"]
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 def generate_response_with_gpt(augmented_prompt):
     """
