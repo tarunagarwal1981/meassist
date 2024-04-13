@@ -92,7 +92,7 @@ def process_files_in_folder(folder_path):
 
 
 # Replace 'folder_path' with your folder's path
-folder_path = '/content/drive/My Drive/LLM'  # Adjust this path
+folder_path = os.path.join(os.getcwd(), 'docs')  # Adjust this path
 process_files_in_folder(folder_path)
 
 from sentence_transformers import SentenceTransformer
