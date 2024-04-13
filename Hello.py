@@ -32,10 +32,11 @@ from google.colab import drive
 # LangChain or other specific libraries can be imported based on your usage
 # import langchain  # Uncomment or modify based on your project's requirements
 
-# Mount Google Drive
-drive.mount('/content/drive')
+# Replace this line
+# folder_path = '/content/drive/My Drive/LLM'
 
-folder_path = '/content/drive/My Drive/LLM'
+# With this line
+folder_path = os.path.join(os.getcwd(), 'docs')
 
 import os
 from pdfminer.high_level import extract_text
@@ -133,10 +134,10 @@ def search_documents(query, index, text_list, top_k=5):
 #     print(f"Score: {score:.2f}, Text: {text[:200]}...")  # Print the beginning of each matching document
 
 
+import os
 import openai
 
-# Ensure your API key is set correctly
-openai.api_key = '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'
+openai.api_key = os.environ["OPENAI_API_KEY"]
 
 def generate_response_with_gpt(augmented_prompt):
     """
