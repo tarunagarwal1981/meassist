@@ -16,10 +16,6 @@ import openpyxl
 from sentence_transformers import SentenceTransformer
 import faiss
 
-<<<<<<< HEAD
-
-=======
->>>>>>> 5725a20cbc1cd63cecf0872ae39cab92a34e7412
 
 # LangChain or other specific libraries can be imported based on your usage
 # import langchain  # Uncomment or modify based on your project's requirements
