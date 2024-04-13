@@ -3,3 +3,11 @@ numpy
 pandas
 pydeck
 streamlit
+pandas
+numpy
+pdfminer.six
+python-docx
+openpyxl
+sentence_transformers
+openai
+faiss-cpu
