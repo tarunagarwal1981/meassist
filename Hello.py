@@ -1,6 +1,6 @@
 
 # Install necessary libraries
-pip install -r requirements.txt
+!pip install -r requirements.txt
 # Depending on your specific needs, you might need to install additional packages or specific versions of these packages.
 
 # Basic imports for data handling
