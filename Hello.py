@@ -1,3 +1,4 @@
+import streamlit as st
 import os
 import numpy as np
 import pandas as pd
@@ -7,6 +8,7 @@ import openpyxl
 from sentence_transformers import SentenceTransformer
 import faiss
 import openai
+from transformers import GPT2Tokenizer
 
 # Define the folder path for document processing
 folder_path = 'docs'
@@ -16,7 +18,7 @@ def extract_text_from_pdf(pdf_path):
     try:
         return extract_text(pdf_path)
     except Exception as e:
-        print(f"Error extracting text from {pdf_path}: {e}")
+        st.error(f"Error extracting text from {pdf_path}: {e}")
         return None
 
 def extract_text_from_docx(docx_path):
@@ -25,7 +27,7 @@ def extract_text_from_docx(docx_path):
         doc = Document(docx_path)
         return '\n'.join(paragraph.text for paragraph in doc.paragraphs)
     except Exception as e:
-        print(f"Error extracting text from {docx_path}: {e}")
+        st.error(f"Error extracting text from {docx_path}: {e}")
         return None
 
 def extract_text_from_excel(excel_path):
@@ -34,7 +36,7 @@ def extract_text_from_excel(excel_path):
         df = pd.concat(pd.read_excel(excel_path, sheet_name=None), ignore_index=True)
         return df.to_csv(index=False, header=False)
     except Exception as e:
-        print(f"Error extracting text from {excel_path}: {e}")
+        st.error(f"Error extracting text from {excel_path}: {e}")
         return None
 
 def process_files_in_folder(folder_path):
@@ -75,11 +77,22 @@ def search_documents(query, index, text_list, top_k=5):
     distances, indices = index.search(np.array([query_embedding]), top_k)
     return [(text_list[idx], distances[0][i]) for i, idx in enumerate(indices[0])]
 
-def create_augmented_prompt(query, retrieved_documents, top_k=3):
+def create_augmented_prompt(query, retrieved_documents, top_k=3, max_tokens=16384):
     """Creates an augmented prompt by combining the query with top retrieved documents."""
-    if len(retrieved_documents) < top_k:
-        top_k = len(retrieved_documents)
-    context = " ".join([doc[0] for doc in sorted(retrieved_documents, key=lambda x: x[1])[:top_k]])
+    tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
+    prompt_tokens = tokenizer.encode(query)
+    available_tokens = max_tokens - len(prompt_tokens) - 50  # Reserve some tokens for query and other text
+
+    context = ""
+    for doc, _ in sorted(retrieved_documents, key=lambda x: x[1])[:top_k]:
+        doc_tokens = tokenizer.encode(doc)
+        if len(doc_tokens) < available_tokens:
+            context += doc + " "
+            prompt_tokens += doc_tokens
+        available_tokens = max_tokens - len(prompt_tokens)
+        if available_tokens <= 0:
+            break
+
     return f"Based on the following information: {context}\n\nAnswer the question: {query}"
 
 def generate_response_with_gpt(augmented_prompt):
@@ -93,26 +106,24 @@ def generate_response_with_gpt(augmented_prompt):
     return response.choices[0].message['content']
 
 def main():
-    """Main function to handle user queries interactively."""
+    st.title("Main Engine Troubleshooting Assistant!")
     document_texts = process_files_in_folder(folder_path)
     document_embeddings = generate_embeddings(document_texts)
     faiss_index = create_faiss_index(np.array(document_embeddings))
 
-    print("Please enter your question or type 'exit' to quit:")
-    while True:
-        query = input("Your question: ")
+    query = st.text_input("Enter your question or type 'exit' to quit:", "")
+    if query:
         if query.lower() == 'exit':
-            print("Exiting the program. Goodbye!")
-            break
+            st.write("Exiting the program. Goodbye!")
+            st.stop()
 
         retrieved_docs = search_documents(query, faiss_index, document_texts)
         if not retrieved_docs:
-            print("Sorry, no relevant information could be found for your question.")
-            continue
-
-        augmented_prompt = create_augmented_prompt(query, retrieved_docs)
-        response = generate_response_with_gpt(augmented_prompt)
-        print("Answer:", response)
+            st.write("Sorry, no relevant information could be found for your question.")
+        else:
+            augmented_prompt = create_augmented_prompt(query, retrieved_docs)
+            response = generate_response_with_gpt(augmented_prompt)
+            st.write("Answer:", response)
 
 if __name__ == "__main__":
     main()
