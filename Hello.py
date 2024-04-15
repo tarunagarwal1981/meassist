@@ -13,6 +13,17 @@ from transformers import GPT2Tokenizer
 # Define the folder path for document processing
 folder_path = 'docs'
 
+def get_api_key():
+    """Retrieve the API key from Streamlit secrets or environment variables."""
+    if 'openai' in st.secrets:
+        return st.secrets['openai']['api_key']
+    api_key = os.getenv('OPENAI_API_KEY')
+    if api_key is None:
+        raise ValueError("API key not found. Set OPENAI_API_KEY as an environment variable.")
+    return api_key
+
+openai.api_key = get_api_key()
+
 def extract_text_from_pdf(pdf_path):
     """Extracts text from a PDF file."""
     try:
@@ -47,11 +58,11 @@ def process_files_in_folder(folder_path):
             file_path = os.path.join(root, file)
             text = None
             if file.endswith('.pdf'):
-                text = extract_text_from_pdf(file_path)
+                text = extract_text_from_pdf(open(file_path, 'rb'))
             elif file.endswith('.docx'):
-                text = extract_text_from_docx(file_path)
+                text = extract_text_from_docx(open(file_path, 'rb'))
             elif file.endswith(('.xls', '.xlsx')):
-                text = extract_text_from_excel(file_path)
+                text = extract_text_from_excel(open(file_path, 'rb'))
             if text:
                 document_texts.append(text)
     return document_texts
@@ -97,7 +108,6 @@ def create_augmented_prompt(query, retrieved_documents, top_k=3, max_tokens=1638
 
 def generate_response_with_gpt(augmented_prompt):
     """Generates a response using the OpenAI ChatCompletion API."""
-    openai.api_key = os.getenv("OPENAI_API_KEY")
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=[{"role": "system", "content": "You are a helpful assistant."},
