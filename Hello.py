@@ -119,7 +119,7 @@ def generate_response_with_gpt(augmented_prompt, sources):
     return response.choices[0].message['content'] + "\n\nSources: " + ", ".join(sources)
 
 def main():
-    st.title("Main Engine Troubleshooting Assistant!")
+    st.title("Engine Expert")
     document_texts, filenames = process_files_in_folder(folder_path)
     document_embeddings = generate_embeddings(document_texts)
     faiss_index = create_faiss_index(np.array(document_embeddings))
