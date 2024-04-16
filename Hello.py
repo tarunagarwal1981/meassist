@@ -24,6 +24,9 @@ def get_api_key():
 
 openai.api_key = get_api_key()
 
+if 'history' not in st.session_state:
+    st.session_state['history'] = []
+
 def extract_text_from_pdf(pdf_path):
     """Extracts text from a PDF file."""
     try:
@@ -80,52 +83,28 @@ def generate_embeddings(text_list):
 @st.cache(allow_output_mutation=True, show_spinner=False)
 def create_faiss_index(embeddings):
     """Creates a FAISS index for a set of document embeddings."""
-    if embeddings is None or not isinstance(embeddings, np.ndarray) or embeddings.ndim != 2:
-        raise ValueError("Invalid or empty embeddings array.")
     index = faiss.IndexFlatL2(embeddings.shape[1])
     index.add(embeddings)
     return index
 
-def search_documents(query, index, text_list, top_k=5):
-    """Searches the index for the documents most similar to the query."""
-    model = SentenceTransformer('all-MiniLM-L6-v2')
-    query_embedding = model.encode([query])[0]
-    distances, indices = index.search(np.array([query_embedding]), top_k)
-    return [(text_list[idx], distances[0][i], idx) for i, idx in enumerate(indices[0])]
-
-def create_augmented_prompt(query, retrieved_documents, filenames, top_k=3, max_tokens=16384):
-    """Creates an augmented prompt by combining the query with top retrieved documents."""
-    tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
-    prompt_tokens = tokenizer.encode(query)
-    available_tokens = max_tokens - len(prompt_tokens) - 50  # Reserve some tokens for query and other text
-    instruction = "Give a detailed answer unless asked for a brief or concise or short answer."
-    context = instruction
-
-    for doc, _, idx in sorted(retrieved_documents, key=lambda x: x[1])[:top_k]:
-        doc_tokens = tokenizer.encode(doc)
-        if len(doc_tokens) < available_tokens:
-            context += " " + doc
-            prompt_tokens += doc_tokens
-            available_tokens = max_tokens - len(prompt_tokens)
-        if available_tokens <= 0:
-            break
-
-    return f"Based on the following information: {context}\n\nAnswer the question: {query}", [filenames[i] for _, _, i in retrieved_documents[:top_k]]
-
-def generate_response_with_gpt(augmented_prompt, sources):
-    """Generates a response using the OpenAI ChatCompletion API."""
+def send_query(query):
+    """Send a query to the OpenAI API using the accumulated chat history."""
+    conversation_history = st.session_state['history']
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=[{"role": "system", "content": "You are a helpful assistant."},
-                  {"role": "user", "content": augmented_prompt}]
+                  {"role": "user", "content": query}]
     )
-    return response.choices[0].message['content'] + "\n\nSources: " + ", ".join(sources)
+    answer = response.choices[0].message['content']
+    conversation_history.append(f"User: {query}")
+    conversation_history.append(f"Assistant: {answer}")
+    return answer
 
 def main():
     st.title("Engine Expert")
-    document_texts, filenames = process_files_in_folder(folder_path)
-    document_embeddings = generate_embeddings(document_texts)
-    faiss_index = create_faiss_index(np.array(document_embeddings))
+    if st.button("Start New Chat"):
+        st.session_state['history'] = []  # Reset conversation history
+        st.success("New chat started. Previous context cleared.")
 
     query = st.text_input("Enter your question or type 'exit' to quit:", "")
     if query:
@@ -133,14 +112,19 @@ def main():
             st.write("Exiting the program. Goodbye!")
             st.stop()
 
+        document_texts, filenames = process_files_in_folder(folder_path)
+        document_embeddings = generate_embeddings(document_texts)
+        faiss_index = create_faiss_index(np.array(document_embeddings))
+
+        if not st.session_state['history']:
+            # Populate the initial conversation context if starting new
+            st.session_state['history'].extend([
+                f"System: Initializing document analysis with context from {len(document_texts)} documents."
+            ])
+
         with st.spinner('Processing your query...'):
-            retrieved_docs = search_documents(query, faiss_index, document_texts)
-            if not retrieved_docs:
-                st.write("Sorry, no relevant information could be found for your question.")
-            else:
-                augmented_prompt, sources = create_augmented_prompt(query, retrieved_docs, filenames)
-                response = generate_response_with_gpt(augmented_prompt, sources)
-                st.write("Answer:", response)
+            response = send_query(query)
+            st.write("Answer:", response)
 
 if __name__ == "__main__":
     main()
