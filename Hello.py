@@ -7,7 +7,8 @@ from docx import Document
 import openpyxl
 from sentence_transformers import SentenceTransformer
 import faiss
-import openaiimport streamlit as st
+import openai
+import streamlit as st
 import os
 import numpy as np
 import pandas as pd
