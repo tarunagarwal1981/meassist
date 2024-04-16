@@ -50,6 +50,7 @@ def extract_text_from_excel(excel_path):
         st.error(f"Error extracting text from {excel_path}: {e}")
         return None
 
+@st.cache(allow_output_mutation=True, show_spinner=False)
 def process_files_in_folder(folder_path):
     """Processes files in a specified folder and extracts texts."""
     document_texts = []
@@ -69,12 +70,14 @@ def process_files_in_folder(folder_path):
                 filenames.append(file)  # Keep track of file names for source attribution
     return document_texts, filenames
 
+@st.cache(allow_output_mutation=True, show_spinner=False)
 def generate_embeddings(text_list):
     """Generates embeddings for a list of text documents."""
     model = SentenceTransformer('all-MiniLM-L6-v2')
     embeddings = model.encode(text_list, show_progress_bar=True)
     return embeddings
 
+@st.cache(allow_output_mutation=True, show_spinner=False)
 def create_faiss_index(embeddings):
     """Creates a FAISS index for a set of document embeddings."""
     if embeddings is None or not isinstance(embeddings, np.ndarray) or embeddings.ndim != 2:
@@ -130,13 +133,14 @@ def main():
             st.write("Exiting the program. Goodbye!")
             st.stop()
 
-        retrieved_docs = search_documents(query, faiss_index, document_texts)
-        if not retrieved_docs:
-            st.write("Sorry, no relevant information could be found for your question.")
-        else:
-            augmented_prompt, sources = create_augmented_prompt(query, retrieved_docs, filenames)
-            response = generate_response_with_gpt(augmented_prompt, sources)
-            st.write("Answer:", response)
+        with st.spinner('Processing your query...'):
+            retrieved_docs = search_documents(query, faiss_index, document_texts)
+            if not retrieved_docs:
+                st.write("Sorry, no relevant information could be found for your question.")
+            else:
+                augmented_prompt, sources = create_augmented_prompt(query, retrieved_docs, filenames)
+                response = generate_response_with_gpt(augmented_prompt, sources)
+                st.write("Answer:", response)
 
 if __name__ == "__main__":
     main()
