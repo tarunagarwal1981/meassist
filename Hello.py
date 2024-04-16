@@ -1,4 +1,3 @@
-import streamlit as st
 import os
 import numpy as np
 import pandas as pd
@@ -67,7 +66,7 @@ def process_files_in_folder(folder_path):
                 text = extract_text_from_excel(open(file_path, 'rb'))
             if text:
                 document_texts.append(text)
-                filenames.append(file)
+                filenames.append(file)  # Keep track of file names for source attribution
     return document_texts, filenames
 
 @st.cache(allow_output_mutation=True, show_spinner=False)
@@ -114,22 +113,15 @@ def create_augmented_prompt(query, retrieved_documents, filenames, top_k=3, max_
 
 def generate_response_with_gpt(augmented_prompt, sources):
     """Generates a response using the OpenAI ChatCompletion API."""
-    conversation_history = st.session_state.get("history", [])
-    conversation_history.append({"role": "user", "content": augmented_prompt})
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
-        messages=[{"role": "system", "content": "You are a helpful assistant."}] + conversation_history
+        messages=[{"role": "system", "content": "You are a helpful assistant."},
+                  {"role": "user", "content": augmented_prompt}]
     )
-    new_message = response.choices[0].message['content']
-    conversation_history.append({"role": "assistant", "content": new_message})
-    st.session_state['history'] = conversation_history
-    return new_message + "\n\nSources: " + ", ".join(sources)
+    return response.choices[0].message['content'] + "\n\nSources: " + ", ".join(sources)
 
 def main():
     st.title("Engine Expert")
-    if 'history' not in st.session_state:
-        st.session_state['history'] = []
-
     document_texts, filenames = process_files_in_folder(folder_path)
     document_embeddings = generate_embeddings(document_texts)
     faiss_index = create_faiss_index(np.array(document_embeddings))
@@ -148,10 +140,6 @@ def main():
                 augmented_prompt, sources = create_augmented_prompt(query, retrieved_docs, filenames)
                 response = generate_response_with_gpt(augmented_prompt, sources)
                 st.write("Answer:", response)
-
-    if st.button("New Chat"):
-        st.session_state['history'] = []  # Clear the conversation history
-        st.experimental_rerun()
 
 if __name__ == "__main__":
     main()
