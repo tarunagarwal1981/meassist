@@ -51,7 +51,7 @@ def main():
     st.title("Data Analysis Tool")
 
     # Assuming the UOG folder is in the same directory as your script
-    folder_path = Path("./UOG")
+    folder_path = Path("pages/UOG")
     files = list(folder_path.glob('*.xlsx'))
     
     if files:
