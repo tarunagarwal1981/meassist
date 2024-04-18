@@ -12,43 +12,40 @@ def get_api_key():
 
 openai.api_key = get_api_key()
 
+def load_excel_data(file_path):
+    """Load Excel data from a file."""
+    df = pd.read_excel(file_path)
+    return df
+
 def data_to_text(df):
     """Generate a textual summary of the DataFrame."""
     summary = "Data Summary:\n"
     for column in df.columns:
         if pd.api.types.is_numeric_dtype(df[column]):
-            summary += f"{column}: Values range from {df[column].min()} to {df[column].max()}, and the average is {df[column].mean():.2f}.\n"
+            summary += f"{column}: Values range from {df[column].min()} to {df[column].max()}, with an average of {df[column].mean():.2f}.\n"
         else:
             unique_values = df[column].nunique()
             summary += f"{column}: Contains non-numeric data with {unique_values} unique entries.\n"
     return summary
 
-def query_assistant(text_summary, user_query):
-    """Query the GPT-4 Assistant API, integrating a code interpreter tool."""
-    try:
-        response = openai.ChatCompletion.create(
-            model="gpt-4",
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant equipped with a code interpreter."},
-                {"role": "user", "content": text_summary},
-                {"role": "user", "content": user_query}
-            ],
-            tools=[{"type": "code_interpreter"}],
-            max_tokens=250
-        )
-        return response.choices[0].message['content']
-    except Exception as e:
-        return f"An error occurred: {str(e)}"
+def query_llm(text_summary, user_query):
+    """Query GPT-4 for a response based on the given summary and user query."""
+    response = openai.Completion.create(
+        model="gpt-4",
+        prompt=f"{text_summary}\n\n{user_query}",
+        max_tokens=250
+    )
+    return response.choices[0].text
 
 def main():
     st.title("Data Analysis with AI Assistant")
 
-    folder_path = Path("pages/UOG")
+    folder_path = Path("./UOG")
     files = list(folder_path.glob('*.xlsx'))
 
     if files:
         file_selector = st.selectbox('Select an Excel file:', files)
-        df = pd.read_excel(file_selector)
+        df = load_excel_data(file_selector)
         
         if not df.empty:
             text_summary = data_to_text(df)
@@ -56,7 +53,7 @@ def main():
             user_query = st.text_input("Enter your query or request for the assistant:")
 
             if user_query and st.button("Get Insights"):
-                insights = query_assistant(text_summary, user_query)
+                insights = query_llm(text_summary, user_query)
                 st.write("Assistant Response:", insights)
         else:
             st.error("The selected file is empty or invalid.")
