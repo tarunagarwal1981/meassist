@@ -35,9 +35,9 @@ assistant = openai.beta.assistants.create(
 # Upload the Excel files to the Assistant
 files = []
 for xlsx_data in xlsx_files:
-    csv_data = xlsx_data.to_csv(index=False)
+    csv_data = xlsx_data.to_csv(index=False).encode('utf-8')
     file = openai.files.create(
-        file=io.StringIO(csv_data),
+        file=io.BytesIO(csv_data),
         purpose="assistants",
     )
     files.append(file.id)
