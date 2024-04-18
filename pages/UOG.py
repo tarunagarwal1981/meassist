@@ -50,8 +50,8 @@ if user_query:
     # Add the CSV data as a message to the thread
     openai.beta.threads.messages.create(
         thread_id=thread.id,
-        role="system",
-        content=csv_data
+        role="user",
+        content=f"Here is the CSV data:\n\n{csv_data}\n\nPlease use this data to answer the following question."
     )
 
     # Add the user query as a message to the thread
