@@ -27,10 +27,11 @@ openai.headers = {"OpenAI-Beta": "assistants=v2"}
 assistant = openai.beta.assistants.create(
     name="Excel Data Assistant",
     instructions="You are an assistant that can analyze and answer questions about Excel data.",
-    model="gpt-4-turbo",
-    tools=[{"type": "retrieval"}]
+    model="gpt-4",
+    tools=[{"type": "file_search"}]
 )
 
+# ... (the rest of your code)
 # Upload the Excel files to the Assistant
 files = []
 for xlsx_data in xlsx_files:
