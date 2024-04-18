@@ -1,75 +1,77 @@
 import streamlit as st
 import pandas as pd
-from pathlib import Path
+import os
 import openai
-import json
+from pathlib import Path
 
-# Function to securely retrieve the OpenAI API key
 def get_api_key():
     """Retrieve the API key from Streamlit secrets or environment variables."""
     if 'openai' in st.secrets:
         return st.secrets['openai']['api_key']
     return st.secrets.get('OPENAI_API_KEY', 'Your-OpenAI-API-Key')  # Replace 'Your-OpenAI-API-Key' with your actual key
 
+# Set up the directory path
+DIR_PATH = Path(__file__).parent.resolve() / "UOG"
+
+# Load the Excel files from the directory
+xlsx_files = []
+for file_path in DIR_PATH.glob("*.xlsx"):
+    xlsx_data = pd.read_excel(file_path)
+    xlsx_files.append(xlsx_data)
+
+# Set up the OpenAI Assistant API
 openai.api_key = get_api_key()
 
-def load_excel_data(file_path):
-    """Load Excel data from a file."""
-    df = pd.read_excel(file_path)
-    return df
+# Create an Assistant
+assistant = openai.beta.assistants.create(
+    name="Excel Data Assistant",
+    instructions="You are an assistant that can analyze and answer questions about Excel data.",
+    model="gpt-4",
+    tools=[{"type": "retrieval"}]
+)
 
-def data_to_text(df):
-    """Generate a compact summary of the DataFrame for the LLM."""
-    summary = f"Total rows: {len(df)}\n"
-    for column in df.columns:
-        if pd.api.types.is_numeric_dtype(df[column]):
-            summary += f"{column}: Avg={df[column].mean():.2f}, Min={df[column].min()}, Max={df[column].max()}\n"
-        else:
-            unique_values = df[column].nunique()
-            summary += f"{column}: {unique_values} unique values\n"
-    return summary
-
-def query_llm_conversation(messages):
-    """Query GPT-4 using ChatCompletion for a conversational response based on messages."""
-    response = openai.ChatCompletion.create(
-        model="gpt-4",
-        messages=messages,
-        max_tokens=500
+# Upload the Excel files to the Assistant
+files = []
+for xlsx_data in xlsx_files:
+    file = openai.files.create(
+        file=xlsx_data.to_csv(index=False),
+        purpose="assistants",
     )
-    return response.choices[0].message['content']
+    files.append(file.id)
 
-def main():
-    st.title("Data Analysis with AI Assistant")
+# Update the Assistant with the uploaded files
+assistant = openai.beta.assistants.update(assistant.id, file_ids=files)
 
-    # Load data
-    folder_path = Path("pages/UOG")
-    files = list(folder_path.glob('*.xlsx'))
+# Streamlit app
+st.title("Excel Data Chat Assistant")
 
-    if files:
-        file_selector = st.selectbox('Select an Excel file:', files)
-        df = load_excel_data(file_selector)
-        
-        if not df.empty:
-            # Display DataFrame
-            st.dataframe(df.head())
-            user_query = st.text_input("Enter your query or request for the assistant:")
+user_query = st.text_input("Ask a question about the data:")
 
-            if user_query:
-                # Pre-process data and prepare messages for chat
-                data_summary = data_to_text(df)
-                messages = [
-                    {"role": "system", "content": "You are a helpful assistant."},
-                    {"role": "user", "content": data_summary},
-                    {"role": "user", "content": user_query}
-                ]
-                
-                if st.button("Get Insights"):
-                    insights = query_llm_conversation(messages)
-                    st.write("Assistant Response:", insights)
-        else:
-            st.error("The selected file is empty or invalid.")
-    else:
-        st.error("No Excel files found in the directory.")
+if user_query:
+    # Create a thread
+    thread = openai.beta.threads.create()
 
-if __name__ == "__main__":
-    main()
+    # Add the user query to the thread
+    openai.beta.threads.messages.create(
+        thread_id=thread.id,
+        role="user",
+        content=user_query
+    )
+
+    # Run the Assistant on the thread
+    run = openai.beta.threads.runs.create(
+        thread_id=thread.id,
+        assistant_id=assistant.id
+    )
+
+    # Wait for the run to complete
+    while run.status != "completed":
+        run = openai.beta.threads.runs.retrieve(
+            thread_id=thread.id,
+            run_id=run.id,
+        )
+
+    # Get the Assistant's response
+    messages = openai.beta.threads.messages.list(thread_id=thread.id)
+    assistant_response = [m.content[0].text.value for m in messages if m.role == "assistant"]
+    st.write(assistant_response[0])
