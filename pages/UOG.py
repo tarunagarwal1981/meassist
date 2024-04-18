@@ -30,13 +30,12 @@ combined_data = pd.concat(xlsx_files, ignore_index=True)
 # Convert the combined data to CSV format
 csv_data = combined_data.to_csv(index=False)
 
-# Create an Assistant with the CSV data
+# Create an Assistant
 assistant = openai.beta.assistants.create(
     name="Excel Data Assistant",
     instructions="You are an assistant that can analyze and answer questions about Excel data.",
     model="gpt-4-turbo-preview",
-    tools=[{"type": "file_search"}],
-    file=csv_data
+    tools=[{"type": "file_search"}]
 )
 
 # Streamlit app
@@ -48,7 +47,14 @@ if user_query:
     # Create a thread
     thread = openai.beta.threads.create()
 
-    # Add the user query to the thread
+    # Add the CSV data as a message to the thread
+    openai.beta.threads.messages.create(
+        thread_id=thread.id,
+        role="system",
+        content=csv_data
+    )
+
+    # Add the user query as a message to the thread
     openai.beta.threads.messages.create(
         thread_id=thread.id,
         role="user",
