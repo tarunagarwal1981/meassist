@@ -2,14 +2,14 @@ import streamlit as st
 import pandas as pd
 import os
 import openai
+import io
 from pathlib import Path
-import tempfile
 
 def get_api_key():
     """Retrieve the API key from Streamlit secrets or environment variables."""
     if 'openai' in st.secrets:
         return st.secrets['openai']['api_key']
-    return os.getenv('OPENAI_API_KEY', 'Your-OpenAI-API-Key')
+    return st.secrets.get('OPENAI_API_KEY', 'Your-OpenAI-API-Key')  # Replace 'Your-OpenAI-API-Key' with your actual key
 
 # Set up the directory path
 DIR_PATH = Path(__file__).parent.resolve() / "UOG"
@@ -22,9 +22,10 @@ for file_path in DIR_PATH.glob("*.xlsx"):
 
 # Set up the OpenAI Assistant API
 openai.api_key = get_api_key()
+openai.headers = {"OpenAI-Beta": "assistants=v2"}
 
 # Create an Assistant
-assistant = openai.Assistant.create(
+assistant = openai.beta.assistants.create(
     name="Excel Data Assistant",
     instructions="You are an assistant that can analyze and answer questions about Excel data.",
     model="gpt-4-turbo-preview",
@@ -34,16 +35,15 @@ assistant = openai.Assistant.create(
 # Upload the Excel files to the Assistant
 files = []
 for xlsx_data in xlsx_files:
-    with tempfile.NamedTemporaryFile(delete=False, suffix='.csv') as tmpfile:
-        xlsx_data.to_csv(tmpfile.name, index=False)
-        file = openai.File.create(
-            file=open(tmpfile.name, 'rb'),
-            purpose="assistants",
-        )
-        files.append(file.id)
+    csv_data = xlsx_data.to_csv(index=False)
+    file = openai.files.create(
+        file=io.StringIO(csv_data),
+        purpose="assistants",
+    )
+    files.append(file.id)
 
 # Update the Assistant with the uploaded files
-assistant = openai.Assistant.update(assistant.id, file_ids=files)
+assistant = openai.beta.assistants.update(assistant.id, file_ids=files)
 
 # Streamlit app
 st.title("Excel Data Chat Assistant")
@@ -52,29 +52,29 @@ user_query = st.text_input("Ask a question about the data:")
 
 if user_query:
     # Create a thread
-    thread = openai.Thread.create()
+    thread = openai.beta.threads.create()
 
     # Add the user query to the thread
-    openai.Message.create(
+    openai.beta.threads.messages.create(
         thread_id=thread.id,
         role="user",
         content=user_query
     )
 
     # Run the Assistant on the thread
-    run = openai.Run.create(
+    run = openai.beta.threads.runs.create(
         thread_id=thread.id,
         assistant_id=assistant.id
     )
 
     # Wait for the run to complete
     while run.status != "completed":
-        run = openai.Run.retrieve(
+        run = openai.beta.threads.runs.retrieve(
             thread_id=thread.id,
             run_id=run.id,
         )
 
     # Get the Assistant's response
-    messages = openai.Message.list(thread_id=thread.id)
-    assistant_response = [m.content for m in messages.data if m.role == "assistant"]
-    st.write(assistant_response[0].content if assistant_response else "No response from assistant.")
+    messages = openai.beta.threads.messages.list(thread_id=thread.id)
+    assistant_response = [m.content[0].text.value for m in messages if m.role == "assistant"]
+    st.write(assistant_response[0])
