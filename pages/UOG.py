@@ -31,8 +31,8 @@ combined_data = pd.concat(xlsx_files, ignore_index=True)
 # Convert the combined data to CSV format
 csv_data = combined_data.to_csv(index=False)
 
-# Compress the CSV data
-compressed_csv_data = gzip.compress(csv_data.encode('utf-8'))
+# Compress the CSV data with a higher compression level
+compressed_csv_data = gzip.compress(csv_data.encode('utf-8'), compresslevel=9)
 
 # Encode the compressed data as base64
 encoded_csv_data = base64.b64encode(compressed_csv_data).decode('utf-8')
