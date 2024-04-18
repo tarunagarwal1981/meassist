@@ -9,5 +9,5 @@ pdfminer.six
 python-docx
 openpyxl
 sentence_transformers
-openai==0.28
+openai
 faiss-cpu
