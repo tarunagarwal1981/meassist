@@ -27,7 +27,7 @@ openai.headers = {"OpenAI-Beta": "assistants=v2"}
 assistant = openai.beta.assistants.create(
     name="Excel Data Assistant",
     instructions="You are an assistant that can analyze and answer questions about Excel data.",
-    model="gpt-4",
+    model="gpt-4-turbo-preview",
     tools=[{"type": "file_search"}]
 )
 
