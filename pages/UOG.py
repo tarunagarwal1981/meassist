@@ -32,7 +32,7 @@ assistant = openai.beta.assistants.create(
     tools=[{"type": "file_search"}]
 )
 
-# Upload the Excel files to the Assistant
+# Upload the Excel files
 files = []
 for xlsx_data in xlsx_files:
     csv_data = xlsx_data.to_csv(index=False).encode('utf-8')
@@ -41,9 +41,6 @@ for xlsx_data in xlsx_files:
         purpose="assistants",
     )
     files.append(file.id)
-
-# Update the Assistant with the uploaded files
-assistant = openai.beta.assistants.update(assistant.id, file_ids=files)
 
 # Streamlit app
 st.title("Excel Data Chat Assistant")
@@ -61,10 +58,11 @@ if user_query:
         content=user_query
     )
 
-    # Run the Assistant on the thread
+    # Run the Assistant on the thread with the file IDs
     run = openai.beta.threads.runs.create(
         thread_id=thread.id,
-        assistant_id=assistant.id
+        assistant_id=assistant.id,
+        file_ids=files
     )
 
     # Wait for the run to complete
