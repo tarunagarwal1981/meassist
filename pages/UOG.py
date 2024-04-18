@@ -29,13 +29,18 @@ def data_to_text(df):
     return summary
 
 def query_llm(text_summary, user_query):
-    """Query GPT-4 for a response based on the given summary and user query."""
-    response = openai.Completion.create(
+    """Query GPT-4 using ChatCompletion for a conversational response based on the given summary and user query."""
+    messages = [
+        {"role": "system", "content": "You are a helpful assistant capable of analyzing data."},
+        {"role": "user", "content": text_summary},
+        {"role": "user", "content": user_query}
+    ]
+    response = openai.ChatCompletion.create(
         model="gpt-4",
-        prompt=f"{text_summary}\n\n{user_query}",
+        messages=messages,
         max_tokens=250
     )
-    return response.choices[0].text
+    return response.choices[0].message['content']
 
 def main():
     st.title("Data Analysis with AI Assistant")
