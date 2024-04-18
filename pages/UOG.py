@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import os
 import openai
-import io
 from pathlib import Path
 
 def get_api_key():
@@ -47,12 +46,17 @@ if user_query:
     # Create a thread
     thread = openai.beta.threads.create()
 
-    # Add the CSV data as a message to the thread
-    openai.beta.threads.messages.create(
-        thread_id=thread.id,
-        role="user",
-        content=f"Here is the CSV data:\n\n{csv_data}\n\nPlease use this data to answer the following question."
-    )
+    # Split the CSV data into chunks
+    chunk_size = 200000  # Adjust the chunk size as needed
+    csv_chunks = [csv_data[i:i+chunk_size] for i in range(0, len(csv_data), chunk_size)]
+
+    # Add the CSV data chunks as separate messages to the thread
+    for i, chunk in enumerate(csv_chunks):
+        openai.beta.threads.messages.create(
+            thread_id=thread.id,
+            role="user",
+            content=f"Here is part {i+1} of the CSV data:\n\n{chunk}\n\nPlease use this data along with the other parts to answer the following question."
+        )
 
     # Add the user query as a message to the thread
     openai.beta.threads.messages.create(
