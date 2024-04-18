@@ -40,7 +40,7 @@ def query_llm(text_summary, user_query):
 def main():
     st.title("Data Analysis with AI Assistant")
 
-    folder_path = Path("./UOG")
+    folder_path = Path("pages/UOG")
     files = list(folder_path.glob('*.xlsx'))
 
     if files:
