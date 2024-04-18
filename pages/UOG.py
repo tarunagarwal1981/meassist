@@ -37,6 +37,10 @@ compressed_csv_data = gzip.compress(csv_data.encode('utf-8'), compresslevel=9)
 # Encode the compressed data as base64
 encoded_csv_data = base64.b64encode(compressed_csv_data).decode('utf-8')
 
+# Split the encoded CSV data into chunks
+chunk_size = 200000  # Adjust the chunk size as needed
+data_chunks = [encoded_csv_data[i:i+chunk_size] for i in range(0, len(encoded_csv_data), chunk_size)]
+
 # Create an Assistant
 assistant = openai.beta.assistants.create(
     name="Defect Sheet Assistant",
@@ -54,23 +58,24 @@ if user_query:
     # Create a thread
     thread = openai.beta.threads.create()
 
-    # Add the compressed and encoded CSV data as a message to the thread
-    openai.beta.threads.messages.create(
-        thread_id=thread.id,
-        role="user",
-        content=f"Here is the compressed CSV data:\n\n{encoded_csv_data}\n\n"
-                f"The data contains information about defects in a fleet of ships, including columns for vessel name, defect name, "
-                f"equipment/component, subcomponent, status (open/closed), expected budget spending, action taken or planned action, "
-                f"progress, and other relevant information.\n"
-                f"Please decompress the data and use it to answer the following question accurately."
-    )
+    # Add each chunk as a separate message to the thread
+    for i, chunk in enumerate(data_chunks):
+        openai.beta.threads.messages.create(
+            thread_id=thread.id,
+            role="user",
+            content=f"Data chunk {i+1}/{len(data_chunks)}:\n\n{chunk}\n\n"
+                    f"This is part of the compressed CSV data containing information about defects in a fleet of ships."
+        )
 
     # Add the user query as a message to the thread
     openai.beta.threads.messages.create(
         thread_id=thread.id,
         role="user",
         content=f"Question: {user_query}\n"
-                f"Please provide a specific and accurate answer based on the defect sheet data provided."
+                f"The data contains information about defects in a fleet of ships, including columns for vessel name, defect name, "
+                f"equipment/component, subcomponent, status (open/closed), expected budget spending, action taken or planned action, "
+                f"progress, and other relevant information.\n"
+                f"Please provide a specific and accurate answer based on the defect sheet data provided across all the data chunks."
     )
 
     # Run the Assistant on the thread
