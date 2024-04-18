@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 import os
 import openai
+import gzip
+import base64
 from pathlib import Path
 
 def get_api_key():
@@ -29,6 +31,12 @@ combined_data = pd.concat(xlsx_files, ignore_index=True)
 # Convert the combined data to CSV format
 csv_data = combined_data.to_csv(index=False)
 
+# Compress the CSV data
+compressed_csv_data = gzip.compress(csv_data.encode('utf-8'))
+
+# Encode the compressed data as base64
+encoded_csv_data = base64.b64encode(compressed_csv_data).decode('utf-8')
+
 # Create an Assistant
 assistant = openai.beta.assistants.create(
     name="Excel Data Assistant",
@@ -46,17 +54,12 @@ if user_query:
     # Create a thread
     thread = openai.beta.threads.create()
 
-    # Split the CSV data into chunks
-    chunk_size = 200000  # Adjust the chunk size as needed
-    csv_chunks = [csv_data[i:i+chunk_size] for i in range(0, len(csv_data), chunk_size)]
-
-    # Add the CSV data chunks as separate messages to the thread
-    for i, chunk in enumerate(csv_chunks):
-        openai.beta.threads.messages.create(
-            thread_id=thread.id,
-            role="user",
-            content=f"Here is part {i+1} of the CSV data:\n\n{chunk}\n\nPlease use this data along with the other parts to answer the following question."
-        )
+    # Add the compressed and encoded CSV data as a message to the thread
+    openai.beta.threads.messages.create(
+        thread_id=thread.id,
+        role="user",
+        content=f"Here is the compressed CSV data:\n\n{encoded_csv_data}\n\nPlease decompress and use this data to answer the following question."
+    )
 
     # Add the user query as a message to the thread
     openai.beta.threads.messages.create(
