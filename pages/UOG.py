@@ -24,23 +24,20 @@ for file_path in DIR_PATH.glob("*.xlsx"):
 openai.api_key = get_api_key()
 openai.headers = {"OpenAI-Beta": "assistants=v2"}
 
-# Create an Assistant
+# Combine the Excel data into a single DataFrame
+combined_data = pd.concat(xlsx_files, ignore_index=True)
+
+# Convert the combined data to CSV format
+csv_data = combined_data.to_csv(index=False)
+
+# Create an Assistant with the CSV data
 assistant = openai.beta.assistants.create(
     name="Excel Data Assistant",
     instructions="You are an assistant that can analyze and answer questions about Excel data.",
     model="gpt-4-turbo-preview",
-    tools=[{"type": "file_search"}]
+    tools=[{"type": "file_search"}],
+    file=csv_data
 )
-
-# Upload the Excel files
-files = []
-for xlsx_data in xlsx_files:
-    csv_data = xlsx_data.to_csv(index=False).encode('utf-8')
-    file = openai.files.create(
-        file=io.BytesIO(csv_data),
-        purpose="assistants",
-    )
-    files.append(file.id)
 
 # Streamlit app
 st.title("Excel Data Chat Assistant")
@@ -58,11 +55,10 @@ if user_query:
         content=user_query
     )
 
-    # Run the Assistant on the thread with the file IDs
+    # Run the Assistant on the thread
     run = openai.beta.threads.runs.create(
         thread_id=thread.id,
-        assistant_id=assistant.id,
-        file_ids=files
+        assistant_id=assistant.id
     )
 
     # Wait for the run to complete
