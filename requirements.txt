@@ -11,3 +11,4 @@ openpyxl
 sentence_transformers
 openai
 faiss-cpu
+pandasai[excel]
