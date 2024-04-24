@@ -8,7 +8,7 @@ numpy
 pdfminer.six
 python-docx
 openpyxl
-sentence_transformers
+upgrade sentence_transformers
 openai==0.28
 faiss-cpu
 pandasai[excel]
