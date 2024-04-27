@@ -11,6 +11,9 @@ import openai
 from doctr.models import ocr_predictor
 from doctr.io import DocumentFile
 
+apt-get update
+apt-get install libgl1-mesa-glx
+
 # Define the folder path for document processing
 folder_path = 'docs'
 
