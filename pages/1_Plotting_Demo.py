@@ -11,29 +11,25 @@ import openai
 from doctr.models import ocr_predictor
 from doctr.io import DocumentFile
 
-apt-get update
-apt-get install libgl1-mesa-glx
-
 # Define the folder path for document processing
 folder_path = 'docs'
 
 def get_api_key():
     """Retrieve the API key from Streamlit secrets or environment variables."""
-    if 'openai' in st.secrets:
-        return st.secrets['openai']['api_key']
-    api_key = os.getenv('OPENAI_API_KEY')
-    if api_key is None:
-        raise ValueError("API key not found. Set OPENAI_API_KEY as an environment variable.")
+    api_key = st.secrets['openai']['api_key'] if 'openai' in st.secrets else os.getenv('OPENAI_API_KEY')
+    if not api_key:
+        st.error("API key not found. Set OPENAI_API_KEY as an environment variable.")
+        st.stop()
     return api_key
 
 openai.api_key = get_api_key()
 
 def extract_text_from_pdf(pdf_path):
-    """Extracts text from a PDF file."""
+    """Extracts text from a PDF file using pdfminer and optionally Doctr for OCR."""
     try:
-        text = extract_text(pdf_path)
-        if not text.strip():  # Check if extracted text is empty
-            # Use Doctr for OCR
+        with open(pdf_path, 'rb') as file:
+            text = extract_text(file)
+        if not text.strip():
             model = ocr_predictor(pretrained=True)
             doc = DocumentFile.from_pdf(pdf_path)
             result = model(doc)
@@ -46,14 +42,15 @@ def extract_text_from_pdf(pdf_path):
 def extract_text_from_docx(docx_path):
     """Extracts text from a DOCX file."""
     try:
-        doc = Document(docx_path)
+        with open(docx_path, 'rb') as file:
+            doc = Document(file)
         return '\n'.join(paragraph.text for paragraph in doc.paragraphs)
     except Exception as e:
         st.error(f"Error extracting text from {docx_path}: {e}")
         return None
 
 def extract_text_from_excel(excel_path):
-    """Extracts text from an Excel file."""
+    """Extracts concatenated text from all sheets in an Excel file."""
     try:
         df = pd.concat(pd.read_excel(excel_path, sheet_name=None), ignore_index=True)
         return df.to_csv(index=False, header=False)
@@ -71,14 +68,14 @@ def process_files_in_folder(folder_path):
             file_path = os.path.join(root, file)
             text = None
             if file.endswith('.pdf'):
-                text = extract_text_from_pdf(open(file_path, 'rb'))
+                text = extract_text_from_pdf(file_path)
             elif file.endswith('.docx'):
-                text = extract_text_from_docx(open(file_path, 'rb'))
+                text = extract_text_from_docx(file_path)
             elif file.endswith(('.xls', '.xlsx')):
-                text = extract_text_from_excel(open(file_path, 'rb'))
+                text = extract_text_from_excel(file_path)
             if text:
                 document_texts.append(text)
-                filenames.append(file)  # Keep track of file names for source attribution
+                filenames.append(file)
     return document_texts, filenames
 
 @st.cache(allow_output_mutation=True, show_spinner=False)
@@ -91,8 +88,6 @@ def generate_embeddings(text_list):
 @st.cache(allow_output_mutation=True, show_spinner=False)
 def create_faiss_index(embeddings):
     """Creates a FAISS index for a set of document embeddings."""
-    if embeddings is None or not isinstance(embeddings, np.ndarray) or embeddings.ndim != 2:
-        raise ValueError("Invalid or empty embeddings array.")
     index = faiss.IndexFlatL2(embeddings.shape[1])
     index.add(embeddings)
     return index
@@ -126,25 +121,24 @@ def generate_response(augmented_prompt, sources):
     return response.choices[0].message['content'] + "\n\nSources: " + ", ".join(sources)
 
 def main():
-    st.title("Engine Expert")
+    st.title("Document Analysis Tool")
     document_texts, filenames = process_files_in_folder(folder_path)
     document_embeddings = generate_embeddings(document_texts)
-    faiss_index = create_faiss_index(np.array(document_embeddings))
+    faiss_index = create_faiss_index(document_embeddings)
 
     query = st.text_input("Enter your question or type 'exit' to quit:", "")
-    if query:
-        if query.lower() == 'exit':
-            st.write("Exiting the program. Goodbye!")
-            st.stop()
+    if query.lower() == 'exit':
+        st.write("Exiting the program. Goodbye!")
+        return
 
-        with st.spinner('Processing your query...'):
-            retrieved_docs = search_documents(query, faiss_index, document_texts)
-            if not retrieved_docs:
-                st.write("Sorry, no relevant information could be found for your question.")
-            else:
-                augmented_prompt, sources = create_augmented_prompt(query, retrieved_docs, filenames)
-                response = generate_response(augmented_prompt, sources)
-                st.write("Answer:", response)
+    with st.spinner('Searching documents...'):
+        retrieved_docs = search_documents(query, faiss_index, document_texts, top_k=5)
+        if not retrieved_docs:
+            st.write("Sorry, no relevant information could be found for your question.")
+            return
+        augmented_prompt, sources = create_augmented_prompt(query, retrieved_docs, filenames, top_k=3)
+        response = generate_response(augmented_prompt, sources)
+        st.write("Answer:", response)
 
 if __name__ == "__main__":
     main()
