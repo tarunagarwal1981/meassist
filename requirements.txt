@@ -12,3 +12,4 @@ sentence_transformers
 openai==0.28
 faiss-cpu
 pandasai[excel]
+python-doctr transformers torch
