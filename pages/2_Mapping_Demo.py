@@ -12,7 +12,7 @@ from transformers import GPT2Tokenizer
 import fitz  # PyMuPDF
 
 # Define the folder path for document processing
-folder_path = 'docs'
+folder_path = 'docs/s50mcc.pdf'
 
 def get_api_key():
     """Retrieve the API key from Streamlit secrets or environment variables."""
