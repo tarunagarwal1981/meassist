@@ -1,38 +1,25 @@
-name: Deploy Streamlit App
+name: Python application
 
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+on: [push]
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+    - uses: actions/checkout@v2
 
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.9
+    - name: Install Poppler
+      run: sudo apt-get update && sudo apt-get install -y poppler-utils
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.8'
 
-      - name: Install Poppler
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y poppler-utils
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
 
-      - name: Deploy to Streamlit Sharing
-        uses: actions/checkout@v2
-        env:
-          STREAMLIT_SHARING_USERNAME: ${{ secrets.STREAMLIT_SHARING_USERNAME }}
-          STREAMLIT_SHARING_PASSWORD: ${{ secrets.STREAMLIT_SHARING_PASSWORD }}
-        run: |
-          pip install streamlit-sharing-deploy
-          streamlit-sharing-deploy --app your_app.py
+    - name: Run script
+      run: streamlit run your_script.py
