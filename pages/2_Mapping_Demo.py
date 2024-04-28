@@ -1,26 +1,39 @@
-import streamlit as st
-import pytesseract
-from PIL import Image
-import fitz  # PyMuPDF
+import easyocr
+from pdf2image import convert_from_path
+import os
 
-def extract_text_with_tesseract(pdf_path):
-    """Use Tesseract to extract text from all pages of a PDF."""
-    doc = fitz.open(pdf_path)
+def extract_text_from_pdf(pdf_path):
+    # Convert PDF to images
+    pages = convert_from_path(pdf_path)
+    
+    # Initialize easyocr reader
+    reader = easyocr.Reader(['en'])  # Specify the language(s) for OCR
+    
+    # Extract text from each page
     text = ''
-    for page in doc:
-        pix = page.get_pixmap()
-        img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-        page_text = pytesseract.image_to_string(img)
-        text += page_text
-    doc.close()
-    return text
+    for page in pages:
+        # Save the page as a temporary image file
+        temp_image_path = 'temp_page.jpg'
+        page.save(temp_image_path, 'JPEG')
+        
+        # Extract text from the image using easyocr
+        result = reader.readtext(temp_image_path)
+        page_text = ' '.join([res[1] for res in result])
+        
+        # Append the page text to the overall text
+        text += page_text + '\n'
+        
+        # Remove the temporary image file
+        os.remove(temp_image_path)
+    
+    return text.strip()
 
-def main():
-    st.title("OCR Testing with Tesseract")
-    pdf_path = 'docs/s50mcc.pdf'
-    if st.button("Extract Text"):
-        extracted_text = extract_text_with_tesseract(pdf_path)
-        st.text_area("Extracted Text", extracted_text, height=300)
+# Specify the path to your PDF file
+pdf_path = 'path/to/your/pdf/file.pdf'  # Replace with the actual PDF file path
 
-if __name__ == "__main__":
-    main()
+# Extract text from the PDF using easyocr
+extracted_text = extract_text_from_pdf(pdf_path)
+
+# Print the extracted text
+print("Extracted Text:")
+print(extracted_text)
