@@ -1,27 +1,28 @@
+import os
 import streamlit as st
-import fitz  # PyMuPDF
+import pandas as pd
 from pdfminer.high_level import extract_text
 
+# Define the folder path for document processing
+folder_path = 'path_to_your_pdf_file.pdf'
+
 def extract_text_from_pdf(pdf_path):
-    """Extracts text from a PDF file using PyMuPDF."""
-    doc = fitz.open(pdf_path)
-    text = ""
-    for page in doc:
-        text += page.get_text()
-    doc.close()
-    return text
+    """Extracts text from a PDF file using pdfminer.six."""
+    try:
+        text = extract_text(pdf_path)
+        return text
+    except Exception as e:
+        st.error(f"Error extracting text from {pdf_path}: {e}")
+        return None
 
 def main():
-    st.title("PDF OCR Testing")
-    file_path = 'path/to/your/pdf/s50mcc.pdf'  # Update this to your PDF file path
-
+    st.title("PDF Text Extraction")
     if st.button("Extract Text"):
-        text = extract_text_from_pdf(file_path)
-        # Display the first 1000 words
+        text = extract_text_from_pdf(folder_path)
         if text:
-            st.write(" ".join(text.split()[:1000]))  # Displays the first 1000 words
+            st.text_area("Extracted Text", text, height=300)
         else:
-            st.write("No text could be extracted from the PDF.")
+            st.write("Failed to extract text.")
 
 if __name__ == "__main__":
     main()
