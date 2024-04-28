@@ -1,5 +1,6 @@
 import streamlit as st
 import fitz  # PyMuPDF
+from pdfminer.high_level import extract_text
 
 def extract_text_from_pdf(pdf_path):
     """Extracts text from a PDF file using PyMuPDF."""
