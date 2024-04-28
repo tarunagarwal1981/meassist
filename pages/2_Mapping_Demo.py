@@ -1,3 +1,4 @@
+import streamlit as st
 import easyocr
 from pdf2image import convert_from_path
 import pytesseract
@@ -28,12 +29,24 @@ def extract_random_text_from_pdf(pdf_path, num_chars=1000):
     
     return random_text.strip()
 
-# Specify the path to your PDF file
-pdf_path = 'path/to/your/pdf/file.pdf'  # Replace with the actual PDF file path
+# Streamlit app
+def main():
+    st.title("PDF Text Extractor")
+    
+    # File uploader
+    uploaded_file = st.file_uploader("Choose a PDF file", type="pdf")
+    
+    if uploaded_file is not None:
+        # Save the uploaded file temporarily
+        with open("temp.pdf", "wb") as f:
+            f.write(uploaded_file.getbuffer())
+        
+        # Extract random text from the PDF
+        extracted_text = extract_random_text_from_pdf("temp.pdf")
+        
+        # Display the extracted text
+        st.subheader("Extracted Text")
+        st.text(extracted_text)
 
-# Extract random text from the PDF using easyocr and pytesseract
-extracted_text = extract_random_text_from_pdf(pdf_path)
-
-# Print the extracted text
-print("Extracted Text:")
-print(extracted_text)
+if __name__ == "__main__":
+    main()
