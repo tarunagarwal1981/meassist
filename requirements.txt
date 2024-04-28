@@ -13,3 +13,4 @@ openai==0.28
 doctr
 transformers
 pymupdf
+pytesseract
