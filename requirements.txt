@@ -15,4 +15,4 @@ transformers
 pymupdf
 pytesseract
 easyocr
-pdf2text
+pdf2image
