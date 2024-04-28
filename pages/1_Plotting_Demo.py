@@ -120,7 +120,7 @@ def create_augmented_prompt(query, retrieved_documents, filenames, top_k=3, max_
 
     return f"Based on the following information: {context}\n\nAnswer the question: {query}", [filenames[i] for _, _, i in retrieved_documents[:top_k]]
 
-def generate_response_with_gpt(augmented_prompt, sources, temperature=0.7, max_tokens=500, top_p=1.0):
+def generate_response_with_gpt(augmented_prompt, sources, temperature=0.1, max_tokens=500, top_p=1.0):
     """Generates a response using the OpenAI ChatCompletion API with additional parameters."""
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
