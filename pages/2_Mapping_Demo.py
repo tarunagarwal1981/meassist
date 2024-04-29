@@ -4,7 +4,7 @@ import pandas as pd
 from pdfminer.high_level import extract_text
 
 # Define the folder path for document processing
-folder_path = 'path_to_your_pdf_file.pdf'
+folder_path = 'pages/s50mcc.pdf'
 
 def extract_text_from_pdf(pdf_path):
     """Extracts text from a PDF file using pdfminer.six."""
