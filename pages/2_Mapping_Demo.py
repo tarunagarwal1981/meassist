@@ -42,6 +42,14 @@ def process_files_in_folder(folder_path):
                     document_texts.append(text)
                     filenames.append(file)
     return document_texts, filenames
+import subprocess
+
+print("Current PATH:", os.getenv("PATH"))
+try:
+    poppler_path = subprocess.check_output(["which", "pdfinfo"]).decode().strip()
+    print("Found pdfinfo at:", poppler_path)
+except Exception as e:
+    print("Error finding pdfinfo:", e)
 
 def main():
     st.title("Document Processor with OCR")
