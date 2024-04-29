@@ -8,11 +8,12 @@ jobs:
         with:
           python-version: '3.8'
       
-      - name: Install Tesseract OCR
+      - name: Install OCR and Poppler
         run: |
           sudo apt update
           sudo apt install -y tesseract-ocr
           sudo apt install -y libtesseract-dev
+          sudo apt install -y poppler-utils  # This line installs Poppler
 
       - name: Install dependencies
         run: |
