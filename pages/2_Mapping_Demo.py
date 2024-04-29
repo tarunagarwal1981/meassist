@@ -7,6 +7,9 @@ from PIL import Image
 import pdf2image
 import openai  # Import the OpenAI library
 
+# Add the directory containing pdfinfo to the PATH
+os.environ['PATH'] += os.pathsep + '/usr/bin'
+
 def get_api_key():
     if 'openai' in st.secrets:
         return st.secrets['openai']['api_key']
