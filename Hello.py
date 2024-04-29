@@ -1,13 +1,16 @@
+
 import streamlit as st
 import os
 import numpy as np
 import pandas as pd
+from pdfminer.high_level import extract_text
 from docx import Document
 import openpyxl
 from sentence_transformers import SentenceTransformer
 import faiss
 import openai
 from transformers import GPT2Tokenizer
+import fitz  # PyMuPDF
 
 # Define the folder path for document processing
 folder_path = 'docs'
@@ -26,7 +29,14 @@ openai.api_key = get_api_key()
 def extract_text_from_pdf(pdf_path):
     """Extracts text from a PDF file."""
     try:
-        return extract_text(pdf_path)
+        text = extract_text(pdf_path)
+        if not text.strip():  # Check if extracted text is empty
+            doc = fitz.open(pdf_path)
+            text = ''
+            for page in doc:
+                text += page.get_text()
+            doc.close()
+        return text
     except Exception as e:
         st.error(f"Error extracting text from {pdf_path}: {e}")
         return None
@@ -59,11 +69,11 @@ def process_files_in_folder(folder_path):
             file_path = os.path.join(root, file)
             text = None
             if file.endswith('.pdf'):
-                text = extract_text_from_pdf(open(file_path, 'rb'))
+                text = extract_text_from_pdf(file_path)
             elif file.endswith('.docx'):
-                text = extract_text_from_docx(open(file_path, 'rb'))
+                text = extract_text_from_docx(file_path)
             elif file.endswith(('.xls', '.xlsx')):
-                text = extract_text_from_excel(open(file_path, 'rb'))
+                text = extract_text_from_excel(file_path)
             if text:
                 document_texts.append(text)
                 filenames.append(file)  # Keep track of file names for source attribution
@@ -111,12 +121,15 @@ def create_augmented_prompt(query, retrieved_documents, filenames, top_k=3, max_
 
     return f"Based on the following information: {context}\n\nAnswer the question: {query}", [filenames[i] for _, _, i in retrieved_documents[:top_k]]
 
-def generate_response_with_gpt(augmented_prompt, sources):
-    """Generates a response using the OpenAI ChatCompletion API."""
+def generate_response_with_gpt(augmented_prompt, sources, temperature=0.1, max_tokens=500, top_p=1.0):
+    """Generates a response using the OpenAI ChatCompletion API with additional parameters."""
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=[{"role": "system", "content": "You are a helpful assistant."},
-                  {"role": "user", "content": augmented_prompt}]
+                  {"role": "user", "content": augmented_prompt}],
+        temperature=temperature,
+        max_tokens=max_tokens,
+        top_p=top_p
     )
     return response.choices[0].message['content'] + "\n\nSources: " + ", ".join(sources)
 
