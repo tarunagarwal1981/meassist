@@ -10,7 +10,7 @@ import io
 # Assuming pytesseract is properly configured with the path to the Tesseract executable
 pytesseract.pytesseract.tesseract_cmd = '/usr/bin/tesseract'  # Update this path based on your server configuration
 
-pdf_path = 'path_to_your_pdf_file/specific_pdf_file.pdf'  # Specify the path to your PDF here
+pdf_path = 'pages/s50mcc.pdf'  # Specify the path to your PDF here
 
 def extract_text_from_pdf(pdf_path):
     try:
