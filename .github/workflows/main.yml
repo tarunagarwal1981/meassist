@@ -3,16 +3,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.8'
-      
-      - name: Install OCR and Popplerjobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
+
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
@@ -23,40 +14,25 @@ jobs:
           sudo apt update
           sudo apt install -y tesseract-ocr
           sudo apt install -y libtesseract-dev
-          sudo apt install -y poppler-utils  # This installs Poppler and its utilities like pdfinfo
+          sudo apt install -y poppler-utils  # Install Poppler utilities
 
       - name: Verify Poppler Installation
         run: |
-          pdfinfo -v  # Checks the version of pdfinfo to confirm Poppler is in PATH
+          pdfinfo -v  # Check the version of pdfinfo to ensure it's installed
+          which pdfinfo  # Check if pdfinfo is available in PATH
 
-      - name: Check PATH and locate pdfinfo
+      - name: Show PATH
         run: |
-          echo "Current PATH: $PATH"
-          which pdfinfo  # Locates the pdfinfo executable to ensure it's in PATH
+          echo "PATH=$PATH"
+          find /usr/ -name pdfinfo  # Find where pdfinfo is installed
 
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
 
-      - name: List files in current and pages directory
+      - name: List files in the directory containing the PDF
         run: |
-          echo "Listing current directory contents:"
-          ls -l
-          echo "Listing pages directory contents:"
-          ls -l pages/
-
-      - name: Run tests or scripts
-        run: python your_script.py
-
-        run: |
-          sudo apt update
-          sudo apt install -y tesseract-ocr
-          sudo apt install -y libtesseract-dev
-          sudo apt install -y poppler-utils  # This line installs Poppler
-
-      - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
+          ls -l pages/  # List files in the specific directory
 
       - name: Run tests or scripts
         run: python your_script.py
