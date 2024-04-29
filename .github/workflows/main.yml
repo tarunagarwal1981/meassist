@@ -12,27 +12,23 @@ jobs:
       - name: Install Tesseract OCR and Poppler
         run: |
           sudo apt update
-          sudo apt install -y tesseract-ocr
-          sudo apt install -y libtesseract-dev
-          sudo apt install -y poppler-utils  # Install Poppler utilities
+          sudo apt install -y tesseract-ocr libtesseract-dev poppler-utils
 
       - name: Verify Poppler Installation
         run: |
-          pdfinfo -v  # Check the version of pdfinfo to ensure it's installed
+          pdfinfo -v  # Verify the version of pdfinfo to ensure it's installed
           which pdfinfo  # Check if pdfinfo is available in PATH
 
-      - name: Show PATH
+      - name: Show PATH and modify if necessary
         run: |
           echo "PATH=$PATH"
-          find /usr/ -name pdfinfo  # Find where pdfinfo is installed
+          echo "Poppler Path: $(which pdfinfo)"
+          PATH=$PATH:$(dirname $(which pdfinfo))
+          echo "Modified PATH=$PATH"
 
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-
-      - name: List files in the directory containing the PDF
-        run: |
-          ls -l pages/  # List files in the specific directory
 
       - name: Run tests or scripts
         run: python your_script.py
