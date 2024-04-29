@@ -4,15 +4,15 @@ import numpy as np
 import pandas as pd
 import pytesseract
 from PIL import Image
-import io
 import pdf2image
+import openai  # Import the OpenAI library
 
 def get_api_key():
     if 'openai' in st.secrets:
         return st.secrets['openai']['api_key']
     return os.getenv('OPENAI_API_KEY', 'Your-OpenAI-API-Key')
 
-openai.api_key = get_api_key()
+openai.api_key = get_api_key()  # Set the OpenAI API key
 
 def extract_text_from_pdf(pdf_path):
     try:
