@@ -2,7 +2,6 @@ import streamlit as st
 import os
 import numpy as np
 import pandas as pd
-from pdfminer.high_level import extract_text
 from docx import Document
 import openpyxl
 from sentence_transformers import SentenceTransformer
