@@ -7,12 +7,10 @@ import pytesseract
 from PIL import Image
 import io
 
-def get_api_key():
-    if 'openai' in st.secrets:
-        return st.secrets['openai']['api_key']
-    return os.getenv('OPENAI_API_KEY', 'Your-OpenAI-API-Key')
+# Assuming pytesseract is properly configured with the path to the Tesseract executable
+pytesseract.pytesseract.tesseract_cmd = '/usr/bin/tesseract'  # Update this path based on your server configuration
 
-openai.api_key = get_api_key()
+pdf_path = 'path_to_your_pdf_file/specific_pdf_file.pdf'  # Specify the path to your PDF here
 
 def extract_text_from_pdf(pdf_path):
     try:
@@ -22,41 +20,26 @@ def extract_text_from_pdf(pdf_path):
             # Try to get text directly
             text += page.get_text()
         
-        if not text.strip():  # If no text was extracted
-            # Attempt OCR with Tesseract
+        if not text.strip():  # If no text was extracted, attempt OCR with Tesseract
             for page in doc:
                 pix = page.get_pixmap()
                 img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
                 text += pytesseract.image_to_string(img)
         
         doc.close()
-        return text
+        return text, None
     except Exception as e:
         return None, str(e)
 
-def process_files_in_folder(folder_path):
-    document_texts = []
-    filenames = []
-    for root, dirs, files in os.walk(folder_path):
-        for file in files:
-            file_path = os.path.join(root, file)
-            if file.endswith('.pdf'):
-                text, error = extract_text_from_pdf(file_path)
-                if error:
-                    st.error(f"Error extracting text from {file_path}: {error}")
-                if text:
-                    document_texts.append(text)
-                    filenames.append(file)
-    return document_texts, filenames
-
 def main():
     st.title("Document Processor with OCR")
-    if st.button("Process Documents"):
-        document_texts, filenames = process_files_in_folder(folder_path)
-        if document_texts:
-            st.write("Texts extracted from documents:")
-            for text in document_texts[:5]:  # Displaying only first 5 entries
-                st.text(text)
+    if st.button("Process Document"):
+        text, error = extract_text_from_pdf(pdf_path)
+        if error:
+            st.error(f"Error extracting text from {pdf_path}: {error}")
+        if text:
+            st.write("Text extracted from document:")
+            st.text(text[:1000])  # Displaying only the first 1000 characters of the text
 
 if __name__ == "__main__":
     main()
