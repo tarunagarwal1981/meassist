@@ -79,60 +79,6 @@ def process_files_in_folder(folder_path, vessel_name):
                     filenames.append(file)  # Keep track of file names for source attribution
     return document_texts, filenames
 
-@st.cache(allow_output_mutation=True, show_spinner=False)
-def generate_embeddings(text_list):
-    """Generates embeddings for a list of text documents."""
-    model = SentenceTransformer('all-MiniLM-L6-v2')
-    embeddings = model.encode(text_list, show_progress_bar=True)
-    return embeddings
-
-@st.cache(allow_output_mutation=True, show_spinner=False)
-def create_faiss_index(embeddings):
-    """Creates a FAISS index for a set of document embeddings."""
-    if embeddings is None or not isinstance(embeddings, np.ndarray) or embeddings.ndim != 2:
-        raise ValueError("Invalid or empty embeddings array.")
-    index = faiss.IndexFlatL2(embeddings.shape[1])
-    index.add(embeddings)
-    return index
-
-def search_documents(query, index, text_list, top_k=5):
-    """Searches the index for the documents most similar to the query."""
-    model = SentenceTransformer('all-MiniLM-L6-v2')
-    query_embedding = model.encode([query])[0]
-    distances, indices = index.search(np.array([query_embedding]), top_k)
-    return [(text_list[idx], distances[0][i], idx) for i, idx in enumerate(indices[0])]
-
-def create_augmented_prompt(query, retrieved_documents, filenames, top_k=3, max_tokens=16384):
-    """Creates an augmented prompt by combining the query with top retrieved documents."""
-    tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
-    prompt_tokens = tokenizer.encode(query)
-    available_tokens = max_tokens - len(prompt_tokens) - 50  # Reserve some tokens for query and other text
-    instruction = "Give a detailed answer unless asked for a brief or concise or short answer."
-    context = instruction
-
-    for doc, _, idx in sorted(retrieved_documents, key=lambda x: x[1])[:top_k]:
-        doc_tokens = tokenizer.encode(doc)
-        if len(doc_tokens) < available_tokens:
-            context += " " + doc
-            prompt_tokens += doc_tokens
-            available_tokens = max_tokens - len(prompt_tokens)
-        if available_tokens <= 0:
-            break
-
-    return f"Based on the following information: {context}\n\nAnswer the question: {query}", [filenames[i] for _, _, i in retrieved_documents[:top_k]]
-
-def generate_response_with_gpt(augmented_prompt, sources, temperature=0.1, max_tokens=500, top_p=1.0):
-    """Generates a response using the OpenAI ChatCompletion API with additional parameters."""
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "system", "content": "You are a helpful assistant."},
-                  {"role": "user", "content": augmented_prompt}],
-        temperature=temperature,
-        max_tokens=max_tokens,
-        top_p=top_p
-    )
-    return response.choices[0].message['content'] + "\n\nSources: " + ", ".join(sources)
-
 def analyze_reports(document_texts, filenames):
     """Analyzes the reports using the knowledge base files and provides recommendations."""
     analysis_prompt = "Analyze the provided reports based on the following logics:\n\n"
@@ -198,9 +144,18 @@ def analyze_reports(document_texts, filenames):
     analysis_prompt += "- Integrate drain oil, lube oil, wear metal, and other evidence to support conclusions\n\n"
     analysis_prompt += "Analyze the reports and provide recommendations, checks, potential issues, and potential failure modes based on the knowledge base files."
 
-    augmented_prompt, sources = create_augmented_prompt(analysis_prompt, list(zip(document_texts, [0] * len(document_texts), range(len(document_texts)))), filenames)
-    response = generate_response_with_gpt(augmented_prompt, sources)
-    return response
+    report_data = "\n\n".join(document_texts)
+    analysis_prompt = f"Here are the reports to be analyzed:\n\n{report_data}\n\n{analysis_prompt}"
+    
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "system", "content": "You are a helpful assistant."},
+                  {"role": "user", "content": analysis_prompt}],
+        temperature=0.1,
+        max_tokens=1000,
+        top_p=1.0
+    )
+    return response.choices[0].message['content']
 
 def main():
     st.title("Engine Expert")
@@ -210,24 +165,6 @@ def main():
         if not document_texts:
             st.write("No relevant files found for the specified vessel.")
         else:
-            document_embeddings = generate_embeddings(document_texts)
-            faiss_index = create_faiss_index(np.array(document_embeddings))
-
-            query = st.text_input("Enter your question or type 'exit' to quit:", "")
-            if query:
-                if query.lower() == 'exit':
-                    st.write("Exiting the program. Goodbye!")
-                    st.stop()
-
-                with st.spinner('Processing your query...'):
-                    retrieved_docs = search_documents(query, faiss_index, document_texts)
-                    if not retrieved_docs:
-                        st.write("Sorry, no relevant information could be found for your question.")
-                    else:
-                        augmented_prompt, sources = create_augmented_prompt(query, retrieved_docs, filenames)
-                        response = generate_response_with_gpt(augmented_prompt, sources)
-                        st.write("Answer:", response)
-
             if st.button("Analyze Reports"):
                 with st.spinner('Analyzing reports...'):
                     analysis_result = analyze_reports(document_texts, filenames)
