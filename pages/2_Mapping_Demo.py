@@ -293,11 +293,18 @@ def main():
     hull_file_url = 'https://drive.google.com/uc?export=download&id=1dNjLhrvUIWuwiQh9QIZ-7Xc0ba3ze23m'
     performance_file_url = 'https://drive.google.com/uc?export=download&id=1dK9C9niJAm040YCOij-UxziBZIfkJTij'
     
+    st.write("Debug: Streamlit app is running.")
+
     vessel_names = st.text_input("Enter vessel names (comma-separated)").lower().split(', ')
+    st.write(f"Debug: Vessel names - {vessel_names}")
+
     query = st.text_input("Enter your query (e.g., 'hull performance', 'vessel performance')").lower()
+    st.write(f"Debug: Query - {query}")
 
     if st.button("Generate Report"):
+        st.write("Debug: Button clicked.")
         if hull_file_url and performance_file_url and vessel_names and query:
+            st.write("Debug: Processing inputs.")
             df_hull = load_hull_data(hull_file_url)
             df_performance = load_performance_data(performance_file_url)
 
