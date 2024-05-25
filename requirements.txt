@@ -16,3 +16,6 @@ pymupdf
 pytesseract
 easyocr
 pdf2image
+dataframe_image
+torch torchvision torchaudio
+spacy
