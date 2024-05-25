@@ -23,8 +23,14 @@ def get_api_key():
 
 openai.api_key = get_api_key()  # Set the OpenAI API key
 
-# Load spaCy model
-nlp = spacy.load("en_core_web_sm")
+# Download spaCy model if not already present
+spacy_model = "en_core_web_sm"
+try:
+    nlp = spacy.load(spacy_model)
+except OSError:
+    from spacy.cli import download
+    download(spacy_model)
+    nlp = spacy.load(spacy_model)
 
 # Add custom rule to recognize vessel names as ORGANIZATION entities
 @Language.component("vessel_name_rule")
