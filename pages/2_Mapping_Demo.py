@@ -1,3 +1,4 @@
+import streamlit as st
 import pandas as pd
 import spacy
 from spacy.tokens import Span
@@ -12,7 +13,6 @@ from docx.shared import Inches
 from textwrap import wrap
 from io import BytesIO
 import openai
-import streamlit as st
 import os
 
 # Function to get the OpenAI API key
@@ -290,6 +290,7 @@ def display_chart(df, column_name, title):
 def main():
     st.title("Vessel Performance Report Generator")
 
+    # Use the provided downloadable URLs
     hull_file_url = 'https://drive.google.com/uc?export=download&id=1dNjLhrvUIWuwiQh9QIZ-7Xc0ba3ze23m'
     performance_file_url = 'https://drive.google.com/uc?export=download&id=1dK9C9niJAm040YCOij-UxziBZIfkJTij'
     
